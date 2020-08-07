@@ -1,0 +1,21 @@
+Manufacturer,Model Number,Model Name,Model Code,Form Factor,ABIs
+Samsung,SM-N950F,Galaxy Note8,greatlte,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-N9005,Galaxy Note3,hlte,Phone,armeabi-v7a;armeabi
+Samsung,SM-G955N,Galaxy S8+,dream2lteks,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G925F,Galaxy S6 edge,zerolte,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G9508,Galaxy S8,dreamqltecmcc,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G930K,Galaxy S7,heroltektt,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-N935F,Galaxy Note Fan Edition,gracerlte,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-N950W,Galaxy Note8,greatqltecs,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G9350,Galaxy S7 edge,hero2qltechn,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-N950N,Galaxy Note8,greatlteks,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G955F,Galaxy S8+,dream2lte,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-N950U,Galaxy Note8,greatqlte,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G955U,Galaxy S8+,dream2qltesq,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G950U,Galaxy S8,dreamqltesq,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G950U1,Galaxy S8,dreamqlteue,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G9550,Galaxy S8+,dream2qltechn,Phone,arm64-v8a;armeabi-v7a;armeabi
+Samsung,SM-G950W,Galaxy S8,dreamqltecan,Phone,arm64-v8a;armeabi-v7a;armeabi
+LGE,LGM-V300K,V30,joan,Phone,arm64-v8a;armeabi-v7a;armeabi
+HUAWEI,MLA-AL10,nova,HWMLA,Phone,arm64-v8a;armeabi-v7a;armeabi
+HUAWEI,MLA-AL12,nova plus,,Phone,arm64-v8a;armeabi-v7a;armeabi

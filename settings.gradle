@@ -1,0 +1,3 @@
+include ':kollusplayer_sdk-debug'
+rootProject.name='android_sample'
+include ':app'
