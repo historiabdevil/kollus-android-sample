@@ -60,6 +60,23 @@ public class AudioPlayerActivity extends AppCompatActivity  {
 
 
 
+    private void loadUI(){
+        audioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+        contentTitle = (TextView) findViewById(R.id.contentTitle);
+        contentImage = (ImageView) findViewById(R.id.contentImage);
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        poster = (ImageView) findViewById(R.id.poster);
+        btnPlay = (ImageButton) findViewById(R.id.btnPlay);
+        btnPause = (ImageButton) findViewById(R.id.btnPause);
+        btnRew = (ImageButton) findViewById(R.id.btnRew);
+        btnFF = (ImageButton) findViewById(R.id.btnFF);
+        btnMute = (ImageButton) findViewById(R.id.btnMute);
+        volumeBar = (SeekBar) findViewById(R.id.seekBar);
+        close = (ImageButton) findViewById(R.id.close);
+        volumeBar.setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+        surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -80,22 +97,10 @@ public class AudioPlayerActivity extends AppCompatActivity  {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.audioplayer_view);
-        audioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
-        contentTitle = (TextView) findViewById(R.id.contentTitle);
-        contentImage = (ImageView) findViewById(R.id.contentImage);
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
-        poster = (ImageView) findViewById(R.id.poster);
-        btnPlay = (ImageButton) findViewById(R.id.btnPlay);
-        btnPause = (ImageButton) findViewById(R.id.btnPause);
-        btnRew = (ImageButton) findViewById(R.id.btnRew);
-        btnFF = (ImageButton) findViewById(R.id.btnFF);
-        btnMute = (ImageButton) findViewById(R.id.btnMute);
-        volumeBar = (SeekBar) findViewById(R.id.seekBar);
-        close = (ImageButton) findViewById(R.id.close);
-        volumeBar.setMax(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+
         initEventListener();
         initPlayer(getApplicationContext(), 8388);
-        surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+
         surfaceView.getHolder().addCallback(surfaceCallback);
 
 
@@ -166,7 +171,7 @@ public class AudioPlayerActivity extends AppCompatActivity  {
 
         volumeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+            public void onProgressChanged(SeekBar seekBar, int value, boolean b) {
                 audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, i, 0);
 
             }
