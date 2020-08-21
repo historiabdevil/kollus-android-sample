@@ -58,6 +58,7 @@ public class ContentListViewAdapter extends BaseAdapter {
             ViewGroup.LayoutParams layoutParams = convertView.getLayoutParams();
 
             layoutParams.height = 100;
+            convertView.setMinimumHeight(100);
 
             convertView.setLayoutParams(layoutParams);
         }

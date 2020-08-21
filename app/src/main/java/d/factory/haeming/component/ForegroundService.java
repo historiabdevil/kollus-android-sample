@@ -12,6 +12,7 @@ import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import d.factory.haeming.activity.AudioPlayerActivity;
 import d.factory.haeming.activity.LivePlayerActivity;
 import d.factory.haeming.R;
 
@@ -26,9 +27,9 @@ public class ForegroundService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        String input = intent.getStringExtra("playUrl");
+        String input = intent.getExtras().get("playUrl").toString();
         createNotificationChannel();
-        Intent notificationIntent = new Intent(this, LivePlayerActivity.class);
+        Intent notificationIntent = new Intent(this, AudioPlayerActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Example")

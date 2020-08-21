@@ -56,6 +56,7 @@ public class PlayerWrapper implements
     private KollusStorage kollusStorage;
     private KollusContent kollusContent;
     private int serverPort;
+    private PlayerWrapperEventListener playerWrapperEventListener;
 
     private List<BandwidthItem> bandwidthItemList;
     private List<KollusBookmark> bookmarkList;
@@ -88,11 +89,21 @@ public class PlayerWrapper implements
         this.playerState = PlayerStates.NONE;
     }
 
-    public PlayerWrapper(Context context, Uri playUrl, ContentTypes contentType, EncryptTypes encryptType, SurfaceView surfaceView) {
+    public PlayerWrapper(Context context,
+                         KollusStorage kollusStorage,
+                         Uri playUrl,
+                         ContentTypes contentType,
+                         EncryptTypes encryptType,
+                         SurfaceView surfaceView,
+                         int serverPort) {
+        this.playerState = PlayerStates.NONE;
+        this.context = context;
+        this.kollusStorage = kollusStorage;
         this.playUrl = playUrl;
         this.contentType = contentType;
         this.encryptType = encryptType;
         this.surfaceView = surfaceView;
+        this.serverPort = serverPort;
     }
 //region wrapper method
     public void init() throws KollusException {
@@ -127,6 +138,7 @@ public class PlayerWrapper implements
         mediaPlayer.setKollusPlayerLMSListener(this);
         mediaPlayer.setCaptureDetectLister(this);
         mediaPlayer.setEmulatorCheckerListener(this);
+
 
         this.audioStreamVolumeObserver = new AudioStreamVolumeObserver(this.context);
         this.audioStreamVolumeObserver.start(AudioManager.STREAM_MUSIC, this);
@@ -235,6 +247,7 @@ public class PlayerWrapper implements
             point = duration;
         }
         this.mediaPlayer.seekToExact(point);
+        this.mediaPlayer.start();
     }
 
     public void rewind() throws KollusException {
@@ -245,6 +258,10 @@ public class PlayerWrapper implements
     public void forward() throws KollusException {
         int currentPosition = this.mediaPlayer.getCurrentPosition();
         this.seek(currentPosition + seekStep);
+    }
+    public void resetRepeatPosition() throws KollusException {
+        this.setRepeatA(-1);
+        this.setRepeatB(-1);
     }
 
     public void upVolume() {
@@ -469,25 +486,34 @@ public class PlayerWrapper implements
     private Runnable checkProgress = new Runnable(){
         @Override
         public void run() {
-            while(playerState != PlayerStates.NONE){
-                if(playerState != PlayerStates.BUFFERING) {
-                    if (mediaPlayer.isPlaying()) {
-                        playerState = PlayerStates.PLAY;
+            while(playerState != PlayerStates.NONE) {
+                if (mediaPlayer != null) {
+                    if (playerState != PlayerStates.BUFFERING) {
+                        if (mediaPlayer.isPlaying()) {
+                            playerState = PlayerStates.PLAY;
+                        } else {
+                            playerState = PlayerStates.PAUSED;
+                        }
                     }
-                    else {
-                        playerState = PlayerStates.PAUSED;
+                    int current = mediaPlayer.getCurrentPosition();
+                    if (playerWrapperEventListener != null) {
+                        playerWrapperEventListener.progress(current, playerState);
                     }
-                }
-                int current = mediaPlayer.getCurrentPosition();
-                if(repeatA >= 0 && repeatB >= 0 && current >= repeatB){
-                    mediaPlayer.seekToExact(repeatA);
-                }
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
+                    if (repeatA >= 0 && repeatB >= 0 && current >= repeatB) {
+                        try {
+                            seek(repeatA);
+                        } catch (KollusException e) {
+                            Log.i(TAG, e.getMessage());
+                        }
+                    }
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
 
+                    }
                 }
             }
+
         }
     };
     //region implement setter & setter
@@ -577,6 +603,7 @@ public class PlayerWrapper implements
 
     public void setVolume(int volume) {
         this.volume = volume;
+        this.audioStreamVolumeObserver.setVolume(volume);
     }
 
     public float getBrightness() {
@@ -612,7 +639,7 @@ public class PlayerWrapper implements
         if(this.kollusContent.getDuration() < this.repeatB){
             throw new KollusException("구간 반복 끝점을 컨텐츠 크기보다 크게 설정 할수 없습니다.");
         }
-        if(this.repeatA > this.repeatB){
+        if(this.repeatA > repeatB){
             throw new KollusException("구간 반복 시작점보다 끝점을 앞 서 설정 할수 없습니다.");
         }
         this.repeatB = repeatB;
@@ -640,6 +667,62 @@ public class PlayerWrapper implements
 
     public void setAutoplay(boolean autoplay) {
         this.autoplay = autoplay;
+    }
+
+    public int getServerPort() {
+        return serverPort;
+    }
+
+    public void setServerPort(int serverPort) {
+        this.serverPort = serverPort;
+    }
+
+    public PlayerWrapperEventListener getPlayerWrapperEventListener() {
+        return playerWrapperEventListener;
+    }
+
+    public void setPlayerWrapperEventListener(PlayerWrapperEventListener playerWrapperEventListener) {
+        this.playerWrapperEventListener = playerWrapperEventListener;
+    }
+
+    public List<BandwidthItem> getBandwidthItemList() {
+        return bandwidthItemList;
+    }
+
+    public void setBandwidthItemList(List<BandwidthItem> bandwidthItemList) {
+        this.bandwidthItemList = bandwidthItemList;
+    }
+
+    public List<KollusBookmark> getBookmarkList() {
+        return bookmarkList;
+    }
+
+    public void setBookmarkList(List<KollusBookmark> bookmarkList) {
+        this.bookmarkList = bookmarkList;
+    }
+    public String getTitle(){
+        if(this.kollusContent != null && this.playerState != PlayerStates.NONE){
+            return kollusContent.getCourse();
+        }
+        return "";
+    }
+    public Uri getThumbnailUrl(){
+        if(this.kollusContent != null && this.playerState != PlayerStates.NONE){
+            return Uri.parse(kollusContent.getThumbnailPath());
+        }
+        return null;
+    }
+    public Uri getPosterUrl(){
+        if(this.kollusContent != null && this.playerState != PlayerStates.NONE){
+            return Uri.parse(kollusContent.getScreenShotPath());
+        }
+        return null;
+    }
+    public int getDuration(){
+        if(this.kollusContent != null && this.playerState != PlayerStates.NONE){
+            return kollusContent.getDuration();
+        }
+        return 0;
     }
 
     //endregion
@@ -677,6 +760,7 @@ public class PlayerWrapper implements
         if (!isWritable) {
             Log.i(TAG, "북마크를 수정 할수 없습니다.");
         }
+        this.playerWrapperEventListener.loadBookmark();
     }
 
     @Override
@@ -795,6 +879,8 @@ public class PlayerWrapper implements
     public void onPrepared(MediaPlayer mediaPlayer) {
         Log.i(TAG, "컨텐츠 재생 준비 완료");
         this.playerState = PlayerStates.PREPARED;
+        this.kollusContent = new KollusContent();
+        mediaPlayer.getKollusContent(this.kollusContent);
         this.progressThread = new Thread(checkProgress);
         this.progressThread.start();
         if (this.autoplay) {
@@ -805,6 +891,7 @@ public class PlayerWrapper implements
                 Log.i(TAG, kex.getMessage());
             }
         }
+        this.playerWrapperEventListener.prepared();
     }
 
     @Override
@@ -858,14 +945,14 @@ public class PlayerWrapper implements
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        try {
-            if (this.playerState != PlayerStates.NONE) {
-                release();
-            }
-        }catch (KollusException kex){
-            Log.i(TAG, kex.getStackTrace()[0].getMethodName());
-            Log.i(TAG, kex.getMessage());
-        }
+//        try {
+//            if (this.playerState != PlayerStates.NONE) {
+//                release();
+//            }
+//        }catch (KollusException kex){
+//            Log.i(TAG, kex.getStackTrace()[0].getMethodName());
+//            Log.i(TAG, kex.getMessage());
+//        }
     }
 
     @Override

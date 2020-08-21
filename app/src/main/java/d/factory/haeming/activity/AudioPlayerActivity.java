@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -19,22 +20,34 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.kollus.sdk.media.CaptureDetectLister;
 import com.kollus.sdk.media.KollusPlayerLMSListener;
 import com.kollus.sdk.media.MediaPlayer;
 import com.kollus.sdk.media.content.BandwidthItem;
+import com.kollus.sdk.media.content.KollusBookmark;
 import com.kollus.sdk.media.content.KollusContent;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import d.factory.haeming.R;
+import d.factory.haeming.component.ForegroundService;
+import d.factory.haeming.data.ContentTypes;
+import d.factory.haeming.data.EncryptTypes;
+import d.factory.haeming.exception.KollusException;
+import d.factory.haeming.player.PlayerStates;
+import d.factory.haeming.player.PlayerWrapper;
+import d.factory.haeming.player.PlayerWrapperEventListener;
 
 
-public class AudioPlayerActivity extends AppCompatActivity  {
+public class AudioPlayerActivity extends AppCompatActivity
+implements PlayerWrapperEventListener {
 
     private TextView contentTitle;
     private SurfaceView surfaceView;
@@ -58,9 +71,10 @@ public class AudioPlayerActivity extends AppCompatActivity  {
     private boolean isClose;
     private boolean isMute;
 
+    private PlayerWrapper player;
 
 
-    private void loadUI(){
+    private void loadUI() {
         audioManager = (AudioManager) getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
         contentTitle = (TextView) findViewById(R.id.contentTitle);
         contentImage = (ImageView) findViewById(R.id.contentImage);
@@ -79,14 +93,10 @@ public class AudioPlayerActivity extends AppCompatActivity  {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-
         super.onCreate(savedInstanceState);
-
         Intent intent = getIntent();
-
         playUrl = Uri.parse(intent.getExtras().getString("playUrl"));
-        if(playUrl == null){
+        if (playUrl == null) {
             finish();
         }
 
@@ -95,15 +105,20 @@ public class AudioPlayerActivity extends AppCompatActivity  {
         getApplicationContext().sendBroadcast(i);
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.audioplayer_view);
-
+        loadUI();
         initEventListener();
-        initPlayer(getApplicationContext(), 8388);
-
-        surfaceView.getHolder().addCallback(surfaceCallback);
-
-
+        this.player = new PlayerWrapper(this.getApplicationContext(), MainActivity.kollusStorage,
+                playUrl, ContentTypes.AOD, EncryptTypes.KOLLUS, this.surfaceView, 7772);
+        this.player.setPlayerWrapperEventListener(this);
+        this.player.setAutoplay(true);
+        try {
+            this.player.init();
+        } catch (KollusException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -111,324 +126,114 @@ public class AudioPlayerActivity extends AppCompatActivity  {
         super.onDestroy();
     }
 
-
-    boolean prepared = false;
-    private int jump_step = 5000;
-    private View.OnClickListener clickListener = new View.OnClickListener(){
+    private View.OnClickListener clickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-            switch (view.getId()){
-                case R.id.btnPlay:
-                    if(!mMediaPlayer.isPlaying() && prepared){
-                        mMediaPlayer.start();
-                    }
-                    break;
-                case R.id.btnPause:
-                    if(mMediaPlayer.isPlaying()){
-                        mMediaPlayer.pause();
-                    }
-                    break;
-                case R.id.btnRew:
-                    int current = mMediaPlayer.getCurrentPosition();
-                    mMediaPlayer.seekTo(current - 5000 > 0 ? current - 5000 : 0);
-                    mMediaPlayer.start();
-                    break;
-                case R.id.btnFF:
-                    int current2 = mMediaPlayer.getCurrentPosition();
-                    int duration = mMediaPlayer.getDuration();
-                    int position = current2 + 5000 > duration ? duration : current2 + 5000;
-                    mMediaPlayer.seekTo(position);
-                    mMediaPlayer.start();
-                    break;
-                case R.id.btnMute:
-                    isMute = !isMute;
-                    mMediaPlayer.setMute(isMute);
-                    break;
-                case R.id.close:
-                    if(mMediaPlayer.isPlaying()){
-                        mMediaPlayer.pause();
-                        mMediaPlayer.stop();
-                    }
-                    isClose = true;
-                    try {
-                        t.join();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    mMediaPlayer.release();
-                    finish();
-                    break;
+            try {
+                switch (view.getId()) {
+                    case R.id.btnPlay:
+                        player.play();
+                        break;
+                    case R.id.btnPause:
+                        player.pause();
+                        break;
+                    case R.id.btnRew:
+                        player.rewind();
+                        break;
+                    case R.id.btnFF:
+                        player.forward();
+                        break;
+                    case R.id.btnMute:
+                        player.mute();
+                        break;
+                    case R.id.close:
+                        player.release();
+                        finish();
+                        break;
+                }
+            } catch (KollusException kex) {
+
             }
         }
+
     };
-    private void initEventListener(){
+
+    private void initEventListener() {
         btnPlay.setOnClickListener(clickListener);
         btnPause.setOnClickListener(clickListener);
         btnRew.setOnClickListener(clickListener);
         btnFF.setOnClickListener(clickListener);
         btnMute.setOnClickListener(clickListener);
         close.setOnClickListener(clickListener);
-
         volumeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int value, boolean b) {
-                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, i, 0);
-
+                player.setVolume(value);
             }
-
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
             }
-
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-
             }
         });
     }
 
-
-    private void initPlayer(Context context, int serverPort) {
-        mMediaPlayer = new MediaPlayer(context, MainActivity.kollusStorage, serverPort);
-
-
-        mMediaPlayer.setOnCencDrmListener(mCencDrmListener);
-        mMediaPlayer.setOnPreparedListener(mPreparedListener);
-        mMediaPlayer.setOnVideoSizeChangedListener(mSizeChangedListener);
-        mMediaPlayer.setOnCompletionListener(mCompletionListener);
-        mMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
-        mMediaPlayer.setOnErrorListener(mErrorListener);
-        mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
-        mMediaPlayer.setOnInfoListener(mInfoListener);
-        mMediaPlayer.setKollusPlayerLMSListener(mKollusPlayerLMSListener);
-        mMediaPlayer.setOnExternalDisplayDetectListener(mOnExternalDisplayDetectListener);
-        mMediaPlayer.setCaptureDetectLister(mCaptureDetectLister);
-        mMediaPlayer.setOnTimedTextDetectListener(mOnTimedTextDetectListener);
-
-        mMediaPlayer.setOnTimedTextListener(mOnTimedTextListener);
-        mMediaPlayer.setDataSourceByUrl(playUrl.toString(), "");
-        volumeBar.setProgress(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC));
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    @Override
+    public void progress(int current, PlayerStates playerState) {
+        this.progressBar.setProgress(current, true);
+        if(current % 10000 < 500){
+            try {
+                player.addOrUpdateBookmark(current, "북마크!");
+            } catch (KollusException e) {
+                Log.i(getClass().getSimpleName(), e.getMessage());
+            }
+        }
     }
 
-    private MediaPlayer.OnTimedTextDetectListener mOnTimedTextDetectListener = new MediaPlayer.OnTimedTextDetectListener() {
-        @Override
-        public void onTimedTextDetect(MediaPlayer mediaPlayer, int i) {
-            Log.i("Subtitle Detect : ", String.format("%d", i));
-            mediaPlayer.selectTrack(i);
+    @Override
+    public void loadBookmark() {
+        List<KollusBookmark> bookmarks = this.player.listBookmarks();
+        Log.i(getClass().getSimpleName(), "Bookmark list size : " + bookmarks.size());
+        for (KollusBookmark bookmark : bookmarks){
+            Log.i(getClass().getSimpleName(), bookmark.toString());
         }
-    };
+    }
 
-    int current_subtitle = 3;
-    private MediaPlayer.OnTimedTextListener mOnTimedTextListener = new MediaPlayer.OnTimedTextListener() {
-        @Override
-        public void onTimedText(MediaPlayer mediaPlayer, String s) {
-            if(s != null) {
-                Log.i("Subtitle : ", s);
-
-
-                int cnt_subtitle = kollusContent.getSubtitleInfo().size();
-                current_subtitle = current_subtitle + 1 < cnt_subtitle ? current_subtitle + 1 : 0;
-                try {
-                    Log.i("Subtitle Select: ", String.format("%d", current_subtitle));
-                    Log.i("Subtitle Select: ", kollusContent.getSubtitleInfo().get(current_subtitle).url);
-//                    mediaPlayer.addTimedTextSource(kollusContent.getSubtitleInfo().get(current_subtitle).url);
-//                    mediaPlayer.pause();
-                    mediaPlayer.addTimedTextSource(null, Uri.fromFile(new File(kollusContent.getSubtitleInfo().get(current_subtitle).url.replace("file://", ""))));
-//                    mediaPlayer.start();
-                } catch (IOException e) {
-                    Log.e("Subtittle Error: ", e.getLocalizedMessage());
-                }
-            }
+    @Override
+    public void prepared() {
+        this.progressBar.setMax(this.player.getDuration());
+        this.contentTitle.setText(this.player.getTitle());
+        Glide.with(getApplicationContext()).load(this.player.getPosterUrl()).into(poster);
+        //for test
+        try {
+            this.player.setRepeatA(5000);
+            this.player.setRepeatB(10000);
+        } catch (KollusException e) {
+            Log.i(getClass().getSimpleName(), e.getMessage());
         }
+    }
 
-        @Override
-        public void onTimedImage(MediaPlayer mediaPlayer, byte[] bytes, int i, int i1) {
-            Log.i("Subtitle Image", String.format("%d   %d", i, i1));
-        }
-    };
+    @Override
+    protected void onPause() {
+        super.onPause();
+        startService();
+    }
 
-    private MediaPlayer.OnCencDrmListener mCencDrmListener = new MediaPlayer.OnCencDrmListener() {
-        @Override
-        public void onProxyError(int i, String s) {
-            Log.d("DRM CENC Error : ", s);
-        }
-    };
+    @Override
+    protected void onResume() {
+        super.onResume();
+        stopService();
+    }
 
-    private MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
-        @Override
-        public void onPrepared(final MediaPlayer mediaPlayer) {
-            kollusContent = new KollusContent();
-            if(mediaPlayer.getKollusContent(kollusContent)){
-                Log.i("", kollusContent.toString());
-                contentTitle.setText(kollusContent.getSubCourse());
-                kollusContent.setDisablePlayRate(false);
-                progressBar.setMax(kollusContent.getDuration());
-//                Glide.with(getApplicationContext()).load(kollusContent.getThumbnailPath()).into(poster);
-//                Glide.with(getApplicationContext()).load(kollusContent.getThumbnailPath()).into(contentImage);
-                surfaceView.bringToFront();
-                t.start();
-                prepared = true;
-
-                for(KollusContent.SubtitleInfo info : kollusContent.getSubtitleInfo()){
-                    Log.i("Subtitle Info : ", info.url);
-                }
-//                for(MediaPlayerBase.TrackInfo inf : mediaPlayer.getTrackInfo()){
-//                    Log.i("TrackInfo", inf.getLanguage());
-//                }
-                Uri subtitleUri = Uri.fromFile(new File(kollusContent.getSubtitleInfo().get(0).url));
-                try {
-
-//                    mediaPlayer.addTimedTextSource(getBaseContext(), Uri.parse(kollusContent.getSubtitleInfo().get(current_subtitle).url));
-                    mediaPlayer.addTimedTextSource(kollusContent.getSubtitleInfo().get(current_subtitle).url);
-                } catch (IOException e) {
-                    Log.e("Subtittle Error: ", e.getLocalizedMessage());
-                }
-                mediaPlayer.start();
-
-            }
-        }
-    };
-    private MediaPlayer.OnVideoSizeChangedListener mSizeChangedListener = new MediaPlayer.OnVideoSizeChangedListener() {
-        @Override
-        public void onVideoSizeChanged(MediaPlayer mediaPlayer, int i, int i1) {
-        }
-    };
-    private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
-        @Override
-        public void onCompletion(MediaPlayer mediaPlayer) {
-
-        }
-    };
-    private MediaPlayer.OnSeekCompleteListener mSeekCompleteListener = new MediaPlayer.OnSeekCompleteListener() {
-        @Override
-        public void onSeekComplete(MediaPlayer mediaPlayer) {
-
-        }
-    };
-    private MediaPlayer.OnErrorListener mErrorListener = new MediaPlayer.OnErrorListener() {
-        @Override
-        public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
-            return false;
-        }
-    };
-    private MediaPlayer.OnBufferingUpdateListener mBufferingUpdateListener = new MediaPlayer.OnBufferingUpdateListener() {
-        @Override
-        public void onBufferingUpdate(MediaPlayer mediaPlayer, int i) {
-
-        }
-    };
-    private MediaPlayer.OnInfoListener mInfoListener = new MediaPlayer.OnInfoListener() {
-        @Override
-        public boolean onInfo(MediaPlayer mediaPlayer, int i, int i1) {
-            return false;
-        }
-
-        @Override
-        public void onBufferingStart(MediaPlayer mediaPlayer) {
-
-        }
-
-        @Override
-        public void onBufferingEnd(MediaPlayer mediaPlayer) {
-
-        }
-
-        @Override
-        public void onFrameDrop(MediaPlayer mediaPlayer) {
-
-        }
-
-        @Override
-        public void onDownloadRate(MediaPlayer mediaPlayer, int i) {
-
-        }
-
-        @Override
-        public void onDetectBandwidthList(MediaPlayer mediaPlayer, List<BandwidthItem> list) {
-
-        }
-
-        @Override
-        public void onChangedBandwidth(MediaPlayer mediaPlayer, BandwidthItem bandwidthItem) {
-
-        }
-
-        @Override
-        public void onCodecInitFail(MediaPlayer mediaPlayer, String s) {
-
-        }
-
-    };
-    private KollusPlayerLMSListener mKollusPlayerLMSListener = new KollusPlayerLMSListener() {
-        @Override
-        public void onLMS(String s, String s1) {
-
-        }
-    };
-    private MediaPlayer.OnExternalDisplayDetectListener mOnExternalDisplayDetectListener = new MediaPlayer.OnExternalDisplayDetectListener() {
-        @Override
-        public void onExternalDisplayDetect(int i, boolean b) {
-
-        }
-    };
-    private CaptureDetectLister mCaptureDetectLister = new CaptureDetectLister() {
-        @Override
-        public void onCaptureDetected(String s, String s1) {
-
-        }
-    };
-
-    SurfaceHolder.Callback surfaceCallback = new SurfaceHolder.Callback() {
-        @Override
-        public void surfaceCreated(SurfaceHolder holder) {
-            
-
-            if (mMediaPlayer != null && holder != null) {
-                mMediaPlayer.setDisplay(holder);
-                mMediaPlayer.prepareAsync();
-            }
-        }
-
-        @Override
-        public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
-        }
-
-        @Override
-        public void surfaceDestroyed(SurfaceHolder holder) {
-
-            if (mMediaPlayer != null) {
-                mMediaPlayer.destroyDisplay();
-            }
-        }
-    };
-
-    Thread t = new Thread(new Runnable() {
-        @Override
-        public void run() { // Thread 로 작업할 내용을 구현
-            while(!isClose) {
-
-                if (mMediaPlayer.isPlaying()) {
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() { // 화면에 변경하는 작업을 구현
-                            progressBar.setProgress(mMediaPlayer.getCurrentPosition());
-                        }
-                    });
-
-                    try {
-                        Thread.sleep(100); // 시간지연
-                    } catch (InterruptedException e) {    }
-                }
-            } // end of while
-        }
-    });
-
-
-
-
-
-
-
+    public void startService() {
+        Intent serviceIntent = new Intent(this, ForegroundService.class);
+        serviceIntent.putExtra("playUrl", this.playUrl);
+        ContextCompat.startForegroundService(this, serviceIntent);
+    }
+    public void stopService() {
+        Intent serviceIntent = new Intent(this, ForegroundService.class);
+        stopService(serviceIntent);
+    }
 }

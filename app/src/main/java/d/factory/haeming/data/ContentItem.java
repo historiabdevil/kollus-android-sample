@@ -88,9 +88,10 @@ public class ContentItem {
         switch (this.contentType){
             case AOD:
             case VOD:
-                posterUrl = "https://v.kr.kollus.com/poster"+this.mediaContentKey;
+                posterUrl = "https://v.kr.kollus.com/poster/"+this.mediaContentKey;
+                break;
             case LIVE:
-                posterUrl = "https://v-live-kr.kollus.com/poster"+this.mediaContentKey;
+                posterUrl = "https://v-live-kr.kollus.com/poster/"+this.mediaContentKey;
         }
         return posterUrl;
     }
