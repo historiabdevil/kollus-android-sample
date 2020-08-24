@@ -10,7 +10,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "d.factory.haeming"
+        applicationId "com.se.kollus"
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
@@ -89,6 +89,9 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.9.7'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.7'
     implementation 'gun0912.ted:tedpermission:2.2.2'
+    implementation 'androidx.mediarouter:mediarouter:1.1.0'
+    implementation 'com.google.android.gms:play-services-cast-framework:9.2.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.10.0'
+
 
 }

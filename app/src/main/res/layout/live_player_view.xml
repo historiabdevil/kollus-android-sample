@@ -10,7 +10,7 @@
         android:layout_gravity="center"
         android:clickable="false" />
 
-    <d.factory.haeming.ui.control.LiveControlView
+    <com.se.kollus.ui.control.LiveControlView
         android:id="@+id/liveControlView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />

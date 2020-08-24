@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="d.factory.haeming">
+    package="com.se.kollus">
 
 
     <!--uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" /-->
@@ -18,8 +18,6 @@
     <!--     Audio Equalizer-->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions">
-    </uses-permission>
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -32,21 +30,27 @@
 
         >
         <uses-library android:name="org.apache.http.legacy" android:required="false"/>
-        <service android:name="d.factory.haeming.component.ForegroundService"
+        <service android:name="com.se.kollus.component.ForegroundService"
             android:enabled="true"
             android:exported="true"/>
-        <activity android:name="d.factory.haeming.activity.MainActivity">
+        <activity android:name="com.se.kollus.activity.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="d.factory.haeming.activity.AudioPlayerActivity"
+        <activity android:name="com.se.kollus.activity.AudioPlayerActivity"
             android:configChanges="orientation|screenSize"/>
-        <activity android:name="d.factory.haeming.activity.LivePlayerActivity"
+        <activity android:name="com.se.kollus.activity.LivePlayerActivity"
             android:configChanges="orientation|screenSize"/>
-        <activity android:name="d.factory.haeming.activity.VodPlayerActivity"
-            android:configChanges="orientation|screenSize"/>
+        <activity android:name="com.se.kollus.activity.VodPlayerActivity"
+            android:configChanges="orientation|screenSize" />
+        <service android:name="com.se.kollus.security.RecordingAppNotiListener"
+            android:label="Recoding App Notification Detector"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
-
 </manifest>
